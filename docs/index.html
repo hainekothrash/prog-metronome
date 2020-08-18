@@ -51,7 +51,6 @@
                 </div>
                 <form class="form">
                     <input type="hidden" id="last-index" value="0" />
-                    <input type="hidden" id="row-size" value="0" />
 
                     <button type="button" class="time btn btn-primary">6/8</button>
                     <button type="button" class="time btn btn-primary">3/4</button>
@@ -105,11 +104,13 @@
                     $('#time' + index).remove();
                     index--;
                     $('#last-index').val(index);
+                    compileScore();
                 }
             });
             $('#time-clear').on('click', function () {
                 $('#time-area').empty();
-                $('last-index').val('0');
+                $('#last-index').val('0');
+                compileScore();
             });
             $('#play').on('click', function () {
                 $('.control').toggleClass('display-none');
@@ -159,7 +160,7 @@
         }
 
         function getRhythmString(count, unit) {
-            let str;
+            var str;
             if (unit == 4) {
                 str = "10";
                 count--;
