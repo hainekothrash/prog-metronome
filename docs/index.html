@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="Ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title></title>
+</head>
+
+<body>
+    <!-- bootstrap -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/css/bootstrap.min.css"
+        integrity="sha384-GJzZqFGwb1QTTN6wy59ffF1BuGJpLSa9DkKMp0DgiMDm4iYMj70gZWKYbI706tWS" crossorigin="anonymous">
+    <style>
+        span.time {
+            font-size: 2em;
+            border: solid 1px #0a0;
+            border-radius: 0.5em;
+            text-align: center;
+        }
+
+        #display {
+            font-size: 3em;
+        }
+
+        .display-none {
+            display: none;
+        }
+    </style>
+    <div class="container">
+        <ul class="nav nav-tabs">
+            <li class="nav-item">
+                <a href="#std" class="nav-link" data-toggle="tab">通常</a>
+            </li>
+            <li class="nav-item">
+                <a href="#prog" class="nav-link" data-toggle="tab">変拍子対応</a>
+            </li>
+        </ul>
+        <div class="tab-content col-lg-6">
+            <div class="tab-pane" id="std">
+                <h1>メトロノーム</h1>
+            </div>
+            <div class="tab-pane" id="prog">
+                <h1>変拍子対応メトロノーム</h1>
+                <p id="score"></p>
+                <div class="row" id="time-area">
+                </div>
+                <form class="form">
+                    <input type="hidden" id="last-index" value="0" />
+                    <input type="hidden" id="row-size" value="0" />
+
+                    <button type="button" class="btn btn-danger" id="time-del">Del</button>
+                    <button type="button" class="btn btn-danger" id="time-clear">Clear</button>
+                    <button type="button" class="btn btn-primary control" id="play">実行</button>
+                    <button type="button" class="btn btn-danger control display-none" id="stop">停止</button>
+                </form>
+                <p id="display"></p>
+            </div>
+        </div>
+        <form class="form">
+            <div class="form-group form-inline">
+                <label for="bpm">BPM</label>
+                <input class="form-control" type="number" id="bpm" value="120" />
+            </div>
+            <button type="button" class="time btn btn-primary">6/8</button>
+            <button type="button" class="time btn btn-primary">3/4</button>
+            <button type="button" class="time btn btn-primary">4/4</button>
+        </form>
+    </div>
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
+        integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
+        crossorigin="anonymous"></script>
+    <!-- popper.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"
+        integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1"
+        crossorigin="anonymous"></script>
+    <!-- bootstrap -->
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/js/bootstrap.min.js"
+        integrity="sha384-B0UglyR+jN6CkvvICOB2joaf5I4l3gm9GU6Hc1og6Ls7i6U/mkkaduKaBhlAXv9k"
+        crossorigin="anonymous"></script>
+    <!-- 任意のスクリプト-->
+    <script>
+        $(function () {
+            $('.time').on('click', function () {
+                var index = Number($('#last-index').val()) + 1;
+                var val = $(this).text().split("/");
+                var size = Math.round(Number(val[0]) / Number(val[1]) * 4);
+                var tag = '<span class=\"time\ col-' + size + '" id=\"time' + index + '\">' + $(this).text() + '</span>';
+                $('#time-area').append(tag);
+                $('#last-index').val(index);
+                compileScore();
+                $('#score-length').val($('#score').val().length);
+            });
+            $('#time-del').on('click', function () {
+                var index = $('#last-index').val();
+                if (index > 0) {
+                    $('#time' + index).remove();
+                    index--;
+                    $('#last-index').val(index);
+                }
+            });
+            $('#time-clear').on('click', function () {
+                $('#time-area').empty();
+                $('last-index').val('0');
+            });
+            $('#play').on('click', function () {
+                $('.control').toggleClass('display-none');
+                var interval = calcInterval();
+                var score = $('#score').text();
+                let index = 0;
+                var timer = setInterval(function () {
+                    var note = score.charAt(index);
+                    if (note == "|") {
+                        if (index < score.length - 1) {
+                            index++;
+                        } else {
+                            index = 0;
+                        }
+                        note = score.charAt(index);
+                    }
+                    display(note);
+                    if (index < score.length - 1) {
+                        index++;
+                    } else {
+                        index = 0;
+                    }
+                    if ($('#stop').hasClass('display-none')) {
+                        clearInterval(timer);
+                    }
+                }, interval);
+
+            });
+            $('#stop').on('click', function () {
+                $('.control').toggleClass('display-none');
+            })
+            // $('#br').on('click', function(){
+            //     $('#time-area').append('<br />');
+            // })
+        });
+
+        function compileScore() {
+            var score = "";
+            var i = 1;
+            var lastIndex = $('#last-index').val();
+            while (i <= lastIndex) {
+                var time = $('#time' + i).text().split("/");
+                score += getRhythmString(time[0], time[1]);
+                i++;
+            }
+            $('#score').text(score);
+        }
+
+        function getRhythmString(count, unit) {
+            let str;
+            if (unit == 4) {
+                str = "10";
+                count--;
+                while (count > 0) {
+                    str += "20";
+                    count--;
+                }
+            }
+            if (unit == 8) {
+                str = "1";
+                count--;
+                while (count > 0) {
+                    str += "2";
+                    count--;
+                }
+            }
+            return str + "|";
+        }
+
+        function calcInterval() {
+            return 60000 / Number($('#bpm').val()) / 2;
+        }
+
+        function display(val) {
+            $('#display').text(val);
+        }
+
+        function play() {
+
+        }
+    </script>
+</body>
+
+</html>
